@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>郵便番号検索｜住所自動入力</title>
+<!-- Googleマップ表示が便利なことに気づいた今日この頃-->
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --text: #1e293b;
+      --muted: #64748b;
+      --primary: #0ea5e9;
+      --primary-dark: #0284c7;
+      --border: #e2e8f0;
+      --white: #ffffff;
+      --success-bg: #ecfdf5;
+      --success-border: #a7f3d0;
+      --success-text: #065f46;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-text: #991b1b;
+      --radius: 24px;
+      --shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic",
+        YuGothic,
+        Meiryo,
+        sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .home-link {
+      color: #334155;
+      text-decoration: none;
+      font-weight: 700;
+    }
+
+    .tool-name {
+      color: var(--primary-dark);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: var(--primary-dark);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+
+    h1 {
+      margin: 8px 0 0;
+      font-size: clamp(30px, 5vw, 42px);
+      line-height: 1.25;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .description {
+      margin: 16px 0 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .card + .card {
+      margin-top: 20px;
+    }
+
+    .card-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .card-description {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .input-label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .zipcode-input {
+      min-width: 0;
+      flex: 1;
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      outline: none;
+      color: var(--text);
+      background: #fff;
+      letter-spacing: 0.08em;
+      transition:
+        border-color .15s ease,
+        box-shadow .15s ease;
+    }
+
+    .zipcode-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, .12);
+    }
+
+    .button {
+      border: 0;
+      border-radius: 12px;
+      padding: 13px 20px;
+      font-weight: 800;
+      transition:
+        background-color .15s ease,
+        transform .15s ease,
+        opacity .15s ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button:disabled {
+      cursor: wait;
+      opacity: .6;
+      transform: none;
+    }
+
+    .button-primary {
+      color: #fff;
+      background: var(--primary);
+      white-space: nowrap;
+    }
+
+    .button-primary:hover {
+      background: var(--primary-dark);
+    }
+
+    .result {
+      display: none;
+      margin-top: 20px;
+      padding: 20px;
+      border-radius: 18px;
+    }
+
+    .result.success {
+      display: block;
+      color: var(--success-text);
+      background: var(--success-bg);
+      border: 1px solid var(--success-border);
+    }
+
+    .result.error {
+      display: block;
+      color: var(--error-text);
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+    }
+
+    .result-label {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 800;
+      opacity: .75;
+    }
+
+    .address {
+      margin: 8px 0 0;
+      font-size: 22px;
+      line-height: 1.6;
+      font-weight: 900;
+    }
+
+    .address-parts {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .address-part {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .75);
+    }
+
+    .address-part-label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .address-part-value {
+      margin: 5px 0 0;
+      font-weight: 800;
+      line-height: 1.5;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .button-copy {
+      color: #334155;
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+
+    .button-copy:hover {
+      background: #f8fafc;
+    }
+
+    /*
+     * Googleマップ
+     */
+    .map-container {
+      margin-top: 20px;
+      width: 100%;
+      height: 400px;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: #e2e8f0;
+    }
+
+    .map-container iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .notice {
+      margin-top: 20px;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: #e0f2fe;
+      color: #075985;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .notice strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        padding-top: 24px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .search-row {
+        flex-direction: column;
+      }
+
+      .button-primary {
+        width: 100%;
+      }
+
+      .address-parts {
+        grid-template-columns: 1fr;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+
+      .actions .button {
+        width: 100%;
+      }
+
+      .map-container {
+        height: 320px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="/index.html" class="home-link">
+    ← HOME
+    </a>
+    
+    <span class="tool-name">📮 郵便番号検索</span>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <p class="eyebrow">ADDRESS SEARCH</p>
+
+    <h1>
+      郵便番号から<br>
+      住所をかんたん検索
+    </h1>
+
+    <p class="description">
+      7桁の郵便番号を入力すると、住所を自動で取得します。
+      取得した住所はGoogleマップ上に表示されます。
+    </p>
+  </section>
+
+  <section class="card">
+    <h2 class="card-title">📮 郵便番号を入力</h2>
+
+    <p class="card-description">
+      ハイフンあり・なしのどちらでも入力できます。
+    </p>
+
+    <div style="margin-top: 18px;">
+      <label class="input-label" for="zipcode">
+        郵便番号
+      </label>
+
+      <div class="search-row">
+        <input
+          id="zipcode"
+          class="zipcode-input"
+          type="text"
+          inputmode="numeric"
+          autocomplete="postal-code"
+          maxlength="8"
+          placeholder="例：100-0001"
+          aria-label="郵便番号">
+          
+        <button
+          id="searchButton"
+          class="button button-primary"
+          type="button">
+          住所を検索する
+        </button>
+      </div>
+    </div>
+
+    <div id="result" class="result" aria-live="polite">
+      <p class="result-label">検索結果</p>
+      <p id="fullAddress" class="address"></p>
+      <div class="address-parts">
+
+        <div class="address-part">
+          <p class="address-part-label">都道府県</p>
+          <p id="address1" class="address-part-value"></p>
+        </div>
+
+        <div class="address-part">
+          <p class="address-part-label">市区町村</p>
+          <p id="address2" class="address-part-value"></p>
+        </div>
+
+        <div class="address-part">
+          <p class="address-part-label">町域</p>
+          <p id="address3" class="address-part-value"></p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button
+          id="copyButton"
+          class="button button-copy"
+          type="button">
+          📋 住所をコピーする
+        </button>
+      </div>
+    </div>
+
+    <!-- Googleマップ -->
+    <div class="map-container">
+      <iframe
+        id="mapFrame"
+        src="https://www.google.com/maps?q=Japan&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="Googleマップ">
+      </iframe>
+    </div>
+
+    <div id="notice" class="notice">
+      <strong>💡 使い方</strong>
+      郵便番号を入力して「住所を検索する」を押してください。
+      住所が見つかると、下のGoogleマップがその住所へ移動します。
+    </div>
+  </section>
+</main>
+
+<script>
+  "use strict";
+
+  const ZIPCLOUD_API =
+    "https://zipcloud.ibsnet.co.jp/api/search?zipcode=";
+
+  const zipcodeInput =
+    document.getElementById("zipcode");
+
+  const searchButton =
+    document.getElementById("searchButton");
+
+  const result =
+    document.getElementById("result");
+
+  const fullAddress =
+    document.getElementById("fullAddress");
+
+  const address1 =
+    document.getElementById("address1");
+
+  const address2 =
+    document.getElementById("address2");
+
+  const address3 =
+    document.getElementById("address3");
+
+  const copyButton =
+    document.getElementById("copyButton");
+
+  const mapFrame =
+    document.getElementById("mapFrame");
+
+  let currentAddress = "";
+
+  /* 入力された郵便番号を整形 */
+  function normalizeZipcode(value) {
+    return value
+      .replace(/-/g, "")
+      .replace(/[^\d]/g, "");
+  }
+
+  function showError(message) {
+    result.className = "result error";
+
+    fullAddress.textContent = message;
+    address1.textContent = "";
+    address2.textContent = "";
+    address3.textContent = "";
+
+    currentAddress = "";
+  }
+
+  function showAddress(data) {
+    const item = data.results[0];
+
+    const prefecture = item.address1 || "";
+    const city = item.address2 || "";
+    const area = item.address3 || "";
+
+    currentAddress =
+      prefecture + city + area;
+
+    result.className = "result success";
+
+    fullAddress.textContent =
+      currentAddress;
+
+    address1.textContent =
+      prefecture || "—";
+
+    address2.textContent =
+      city || "—";
+
+    address3.textContent =
+      area || "—";
+
+    /* 取得した住所をGoogleマップに反映 */
+    const mapUrl =
+      "https://www.google.com/maps?q=" +
+      encodeURIComponent(currentAddress) +
+      "&output=embed";
+
+    mapFrame.src = mapUrl;
+  }
+
+  async function searchAddress() {
+    const zipcode =
+      normalizeZipcode(zipcodeInput.value);
+
+    zipcodeInput.value =
+      zipcode.length === 7
+        ? zipcode.slice(0, 3) + "-" + zipcode.slice(3)
+        : zipcode;
+
+    if (!/^\d{7}$/.test(zipcode)) {
+      showError(
+        "7桁の郵便番号を入力してください。"
+      );
+      return;
+    }
+
+    searchButton.disabled = true;
+    searchButton.textContent = "検索中...";
+
+    result.className = "result";
+    fullAddress.textContent = "";
+    currentAddress = "";
+
+    try {
+      const response = await fetch(
+        ZIPCLOUD_API +
+        encodeURIComponent(zipcode)
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "HTTP error: " + response.status
+        );
+      }
+
+      const data =
+        await response.json();
+
+      if (
+        !data.results ||
+        !Array.isArray(data.results) ||
+        data.results.length === 0
+      ) {
+        showError(
+          "該当する住所が見つかりませんでした"
+        );
+        return;
+      }
+      showAddress(data);
+      
+    } catch (error) {
+
+      console.error(error);
+
+      showError(
+        "該当する住所が見つかりませんでした"
+      );
+
+    } finally {
+
+      searchButton.disabled = false;
+      searchButton.textContent =
+        "住所を検索する";
+    }
+  }
+
+  searchButton.addEventListener(
+    "click",
+    searchAddress
+  );
+
+  zipcodeInput.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Enter") {
+        searchAddress();
+      }
+    }
+  );
+
+  /* 住所をコピー */
+  copyButton.addEventListener(
+    "click",
+    async () => {
+
+      if (!currentAddress) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          currentAddress
+        );
+        const originalText =
+          copyButton.textContent;
+
+        copyButton.textContent =
+          "✓ コピーしました";
+
+        setTimeout(() => {
+          copyButton.textContent =
+            originalText;
+        }, 1500);
+
+      } catch (error) {
+
+        console.error(error);
+        alert(
+          "住所をコピーできませんでした。"
+        );
+      }
+    }
+  );
+</script>
+</body>
+</html>
