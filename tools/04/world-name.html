@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>世界線属性プロフィール診断</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family:
+        -apple-system, BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic", YuGothic, Meiryo,
+        sans-serif;
+    }
+
+    .result-card {
+      animation: resultIn .55s ease both;
+    }
+
+    .loading .result-card {
+      animation: pulse .9s ease-in-out infinite alternate;
+    }
+
+    @keyframes resultIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes pulse {
+      from {
+        opacity: .45;
+      }
+
+      to {
+        opacity: .9;
+      }
+    }
+
+    .stamp {
+      transform: rotate(-4deg);
+      border: 3px solid #7c3aed;
+    }
+
+    .attribute-number {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 text-slate-800">
+
+<header class="border-b bg-white">
+  <div class="mx-auto max-w-4xl px-5 py-4">
+    <div class="flex items-center justify-between gap-4">
+      <a
+        href="/index.html"
+        class="font-bold text-slate-700">
+        ← HOME
+      </a>
+
+      <span class="text-sm font-bold text-violet-600">
+        🔮 世界線チェッカー
+      </span>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-4xl px-5 py-8">
+  <section class="mb-8">
+
+    <p class="text-sm font-bold text-violet-600">
+      WORLD NAME CHECKER
+    </p>
+
+    <h1 class="mt-2 text-3xl font-black sm:text-4xl">
+      あなたの名前に隠された<br class="sm:hidden">
+      「世界線」をチェック
+    </h1>
+
+    <p class="mt-4 leading-7 text-slate-600">
+      ローマ字の名前を入力すると、3つの公開APIから
+      年齢・性別・国籍を推定して、架空の属性を発行します。
+    </p>
+  </section>
+
+  <section class="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+
+    <label
+      for="nameInput"
+      class="text-sm font-bold">
+      Name
+    </label>
+
+    <input
+      id="nameInput"
+      type="text"
+      inputmode="latin"
+      autocomplete="off"
+      maxlength="100"
+      pattern="[A-Za-z ]+"
+      placeholder="例：Date Masamune"
+      class="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:border-violet-500"
+      aria-describedby="nameHelp">
+      
+    <p
+      id="nameHelp"
+      class="mt-2 text-xs text-slate-500">
+      半角英字とスペースのみ入力できます。
+    </p>
+
+    <button
+      id="checkButton"
+      type="button"
+      class="mt-6 w-full rounded-xl bg-violet-600 px-5 py-4 font-bold text-white shadow-sm transition hover:bg-violet-700 active:scale-[.99]">
+      属性を診断する
+    </button>
+  </section>
+
+  <section
+    id="status"
+    class="mt-5 hidden rounded-2xl p-5 text-sm">
+  </section>
+
+  <section
+    id="result"
+    class="result-card mt-5 hidden">
+
+    <div class="rounded-3xl bg-white p-6 shadow-sm sm:p-8">
+
+      <div class="flex items-start justify-between gap-4">
+
+        <div>
+          <p class="text-sm font-bold text-violet-600">
+            CERTIFIED MYSTERIOUS ATTRIBUTE
+          </p>
+
+          <h2
+            id="resultName"
+            class="mt-2 text-2xl font-black">
+          </h2>
+        </div>
+
+        <div
+          class="stamp hidden rounded-full px-3 py-2 text-center text-xs font-black text-violet-700 sm:block">
+          謎の<br>お墨付き
+        </div>
+      </div>
+
+      <div class="mt-7 grid gap-4 sm:grid-cols-3">
+        <article
+          class="rounded-2xl bg-rose-50 p-5 text-rose-900">
+
+          <p class="text-sm font-bold">
+            🎂 推定年齢
+          </p>
+
+          <p class="mt-3">
+            <span
+              id="ageValue"
+              class="attribute-number text-4xl font-black">
+              —
+            </span>
+            <span class="font-bold">
+              歳
+            </span>
+          </p>
+        </article>
+
+        <article
+          class="rounded-2xl bg-sky-50 p-5 text-sky-900">
+
+          <p class="text-sm font-bold">
+            ⚧ 推定性別
+          </p>
+
+          <p
+            id="genderValue"
+            class="mt-3 text-2xl font-black">
+            —
+          </p>
+
+          <p
+            id="genderProbability"
+            class="mt-1 text-sm">
+            確信度 —
+          </p>
+        </article>
+
+        <article
+          class="rounded-2xl bg-emerald-50 p-5 text-emerald-900">
+
+          <p class="text-sm font-bold">
+            🌐 推定国籍
+          </p>
+
+          <p
+            id="countryValue"
+            class="mt-3 text-2xl font-black">
+            —
+          </p>
+
+          <p
+            id="countryProbability"
+            class="mt-1 text-sm">
+            推定確率 —
+          </p>
+        </article>
+      </div>
+
+      <div
+        class="mt-6 rounded-2xl bg-violet-50 p-5 text-violet-950">
+
+        <p class="text-sm font-bold text-violet-700">
+          🔮 総合判定
+        </p>
+
+        <p
+          id="summary"
+          class="mt-2 text-lg font-black leading-8">
+        </p>
+      </div>
+
+      <div
+        id="apiNotes"
+        class="mt-5 text-xs leading-6 text-slate-400">
+      </div>
+    </div>
+  </section>
+
+  <section
+    class="mt-5 rounded-2xl bg-violet-50 p-5 text-sm leading-6 text-violet-900">
+
+    <p class="font-bold">
+      ⚠️ エンタメ診断です
+    </p>
+
+    <p class="mt-2">
+      年齢・性別・国籍は名前の統計データから推定された値であり、
+      個人の実際の属性を判定するものではありません。
+      結果は完全にお遊びとしてお楽しみください。
+    </p>
+  </section>
+</main>
+
+<script>
+  const API = {
+    age:
+      "https://api.agify.io/?name=",
+
+    gender:
+      "https://api.genderize.io/?name=",
+
+    nationality:
+      "https://api.nationalize.io/?name="
+  };
+
+  const COUNTRY_FLAGS = {
+    JP: "🇯🇵",
+    US: "🇺🇸",
+    GB: "🇬🇧",
+    CA: "🇨🇦",
+    AU: "🇦🇺",
+    NZ: "🇳🇿",
+    DE: "🇩🇪",
+    FR: "🇫🇷",
+    IT: "🇮🇹",
+    ES: "🇪🇸",
+    PT: "🇵🇹",
+    BR: "🇧🇷",
+    MX: "🇲🇽",
+    IN: "🇮🇳",
+    CN: "🇨🇳",
+    KR: "🇰🇷",
+    TW: "🇹🇼",
+    HK: "🇭🇰",
+    SG: "🇸🇬",
+    PH: "🇵🇭",
+    ID: "🇮🇩",
+    MY: "🇲🇾",
+    TH: "🇹🇭",
+    VN: "🇻🇳",
+    RU: "🇷🇺",
+    NL: "🇳🇱",
+    BE: "🇧🇪",
+    SE: "🇸🇪",
+    NO: "🇳🇴",
+    DK: "🇩🇰",
+    FI: "🇫🇮",
+    PL: "🇵🇱",
+    TR: "🇹🇷"
+  };
+
+  const nameInput =
+    document.getElementById("nameInput");
+
+  const checkButton =
+    document.getElementById("checkButton");
+
+  const result =
+    document.getElementById("result");
+
+  const status =
+    document.getElementById("status");
+
+  function sleep(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  function showStatus(
+    message,
+    type = "info"
+  ) {
+
+    status.classList.remove(
+      "hidden",
+      "bg-violet-50",
+      "text-violet-900",
+      "bg-red-50",
+      "text-red-900",
+      "bg-amber-50",
+      "text-amber-900"
+    );
+
+    if (type === "error") {
+      status.classList.add(
+        "bg-red-50",
+        "text-red-900"
+      );
+    } else if (type === "warning") {
+      status.classList.add(
+        "bg-amber-50",
+        "text-amber-900"
+      );
+    } else {
+      status.classList.add(
+        "bg-violet-50",
+        "text-violet-900"
+      );
+    }
+
+    status.textContent = message;
+  }
+
+  function hideStatus() {
+    status.classList.add("hidden");
+  }
+
+  async function fetchJson(url) {
+    const response =
+      await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(
+        `${response.status} ${response.statusText}`
+      );
+    }
+
+    return response.json();
+  }
+
+  function normalizeName(value) {
+    return value
+      .trim()
+      .replace(/\s+/g, " ");
+  }
+
+  function isValidName(name) {
+    /* 半角英字とスペースのみ */
+    return /^[A-Za-z]+(?: [A-Za-z]+)*$/.test(
+      name
+    );
+  }
+
+  function getFlag(countryCode) {
+    return COUNTRY_FLAGS[
+      countryCode
+    ] || "🌐";
+  }
+
+  function percent(value) {
+    if (
+      typeof value !== "number" ||
+      Number.isNaN(value)
+    ) {
+      return "—";
+    }
+    return `${Math.round(value * 100)}%`;
+  }
+
+  function genderLabel(gender) {
+    if (gender === "male") {
+      return "Male";
+    }
+
+    if (gender === "female") {
+      return "Female";
+    }
+    return "Unknown";
+  }
+
+  function countryName(code) {
+    const names = {
+      JP: "日本",
+      US: "アメリカ",
+      GB: "イギリス",
+      CA: "カナダ",
+      AU: "オーストラリア",
+      NZ: "ニュージーランド",
+      DE: "ドイツ",
+      FR: "フランス",
+      IT: "イタリア",
+      ES: "スペイン",
+      BR: "ブラジル",
+      IN: "インド",
+      CN: "中国",
+      KR: "韓国",
+      TW: "台湾",
+      SG: "シンガポール",
+      PH: "フィリピン",
+      ID: "インドネシア",
+      MY: "マレーシア",
+      TH: "タイ",
+      VN: "ベトナム",
+      RU: "ロシア"
+    };
+    return names[code] || code;
+  }
+
+  function renderResult(
+    name,
+    ageData,
+    genderData,
+    nationalityData
+  ) {
+
+    const age =
+      ageData.age;
+
+    const gender =
+      genderData.gender;
+
+    const probability =
+      genderData.probability;
+
+    const topCountry =
+      Array.isArray(
+        nationalityData.country
+      )
+        ? nationalityData.country[0]
+        : null;
+
+    const countryCode =
+      topCountry?.country_id || null;
+
+    const countryProbability =
+      topCountry?.probability;
+
+    document.getElementById(
+      "resultName"
+    ).textContent = name;
+
+    document.getElementById(
+      "ageValue"
+    ).textContent =
+      age ?? "—";
+
+    document.getElementById(
+      "genderValue"
+    ).textContent =
+      genderLabel(gender);
+
+    document.getElementById(
+      "genderProbability"
+    ).textContent =
+      `確信度 ${percent(probability)}`;
+
+    document.getElementById(
+      "countryValue"
+    ).textContent =
+      countryCode
+        ? `${getFlag(countryCode)} ${countryCode}`
+        : "🌐 —";
+
+    document.getElementById(
+      "countryProbability"
+    ).textContent =
+      `推定確率 ${percent(countryProbability)}`;
+
+    const countryText =
+      countryCode
+        ? `${countryName(countryCode)}`
+        : "どこかの国";
+
+    const genderText =
+      gender === "male"
+        ? "男性"
+        : gender === "female"
+          ? "女性"
+          : "未知";
+
+    const ageText =
+      age != null
+        ? `${age}歳`
+        : "年齢不詳";
+
+    document.getElementById(
+      "summary"
+    ).textContent =
+      `あなたは${countryText}にいそうな${ageText}（${genderText}）ですね！`;
+
+    document.getElementById(
+      "apiNotes"
+    ).textContent =
+      "※ この結果は Agify / Genderize / Nationalize の公開統計をもとにした推定値です。";
+
+    result.classList.remove(
+      "hidden",
+      "result-card"
+    );
+
+    void result.offsetWidth;
+    result.classList.add(
+      "result-card"
+    );
+  }
+
+  async function diagnose() {
+    const name =
+      normalizeName(
+        nameInput.value
+      );
+
+    if (!name) {
+      showStatus(
+        "名前を入力してください。",
+        "error"
+      );
+
+      result.classList.add(
+        "hidden"
+      );
+
+      nameInput.focus();
+      return;
+    }
+    if (!isValidName(name)) {
+      showStatus(
+        "半角英字とスペースのみ入力してください。例：Date Masamune",
+        "error"
+      );
+
+      result.classList.add(
+        "hidden"
+      );
+
+      nameInput.focus();
+      return;
+    }
+
+    checkButton.disabled =
+      true;
+
+    result.classList.add(
+      "hidden"
+    );
+
+    showStatus(
+      "🔮 3つのAPIにアクセスして、世界線を解析中…"
+    );
+
+    try {
+      /* 3つのapiを並行実行 */
+      const [
+        ageData,
+        genderData,
+        nationalityData
+      ] = await Promise.all([
+
+        fetchJson(
+          API.age +
+          encodeURIComponent(name)
+        ),
+
+        fetchJson(
+          API.gender +
+          encodeURIComponent(name)
+        ),
+
+        fetchJson(
+          API.nationality +
+          encodeURIComponent(name)
+        )
+      ]);
+
+      renderResult(
+        name,
+        ageData,
+        genderData,
+        nationalityData
+      );
+
+      hideStatus();
+
+      /* 少しだけ診断演出 */
+      await sleep(250);
+
+      result.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    } catch (error) {
+
+      console.error(error);
+      
+      showStatus(
+        "APIからデータを取得できませんでした。APIのレート制限や一時的な障害の可能性があります。少し時間を置いて再度お試しください。",
+        "error"
+      );
+
+    } finally {
+
+      checkButton.disabled =
+        false;
+    }
+  }
+
+  /* Enterキーでも診断可能 */
+  nameInput.addEventListener(
+    "keydown",
+    event => {
+
+      if (event.key === "Enter") {
+        diagnose();
+      }
+    }
+  );
+
+  /* 入力時に半角英字以外を除去 */
+  nameInput.addEventListener(
+    "input",
+    () => {
+
+      const cleaned =
+        nameInput.value.replace(
+          /[^A-Za-z ]/g,
+          ""
+        );
+
+      if (
+        nameInput.value !== cleaned
+      ) {
+        nameInput.value =
+          cleaned;
+      }
+    }
+  );
+
+  checkButton.addEventListener(
+    "click",
+    diagnose
+  );
+</script>
+</body>
+</html>
