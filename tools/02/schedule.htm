@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日程調整メーカー｜サーバーレス</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  <style>
+    body {
+      font-family:
+        -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN",
+        "Yu Gothic", YuGothic, Meiryo, sans-serif;
+    }
+
+    .choice-btn {
+      transition: all .15s ease;
+    }
+
+    .choice-btn.active-ok {
+      background: #dcfce7;
+      border-color: #22c55e;
+      color: #166534;
+    }
+
+    .choice-btn.active-maybe {
+      background: #fef9c3;
+      border-color: #eab308;
+      color: #854d0e;
+    }
+
+    .choice-btn.active-no {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 text-slate-800">
+<header class="border-b bg-white">
+  <div class="mx-auto max-w-4xl px-5 py-4">
+    <div class="flex items-center justify-between">
+
+      <a
+        href="./index.html"
+        class="font-bold text-slate-700">
+        ← HOME
+      </a>
+
+      <span class="text-sm font-bold text-violet-600">
+        📅 日程調整
+      </span>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-4xl px-5 py-8">
+
+<!-- 作成画面 -->
+<section id="createScreen">
+  <div class="mb-8">
+    <p class="text-sm font-bold text-violet-600">
+      STEP 1
+    </p>
+
+    <h1 class="mt-2 text-3xl font-black sm:text-4xl">
+      日程調整を作る
+    </h1>
+
+    <p class="mt-3 leading-7 text-slate-600">
+      イベント名と候補日時を入力するだけ。
+      データはサーバーに保存されません。
+    </p>
+  </div>
+
+  <div class="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+    <label class="text-sm font-bold">
+      イベント名
+    </label>
+    
+    <input
+      id="eventName"
+      type="text"
+      placeholder="例：みんなでランチ"
+      class="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:border-violet-500">
+
+    <div class="mt-7">
+      <div class="flex items-center justify-between">
+        <label class="text-sm font-bold">
+          候補日時
+        </label>
+
+        <button
+          id="addDateBtn"
+          class="rounded-lg bg-violet-100 px-3 py-2 text-sm font-bold text-violet-700">
+          ＋ 追加
+        </button>
+      </div>
+
+      <div
+        id="dateInputs"
+        class="mt-3 space-y-3"
+      ></div>
+    </div>
+
+    <button
+      id="createBtn"
+      class="mt-7 w-full rounded-xl bg-violet-600 px-5 py-4 font-bold text-white hover:bg-violet-700">
+      URLを発行する
+    </button>
+  </div>
+
+  <div class="mt-5 rounded-2xl bg-violet-50 p-5">
+    <p class="font-bold text-violet-900">
+      🔐 サーバーレス
+    </p>
+
+    <p class="mt-2 text-sm leading-6 text-violet-800">
+      イベント情報はURLの「#」以降に圧縮して保存します。
+      サーバーやデータベースにはイベント情報を送信しません。
+    </p>
+  </div>
+</section>
+
+<!-- イベント画面 -->
+<section
+  id="eventScreen"
+  class="hidden">
+  
+  <div id="bestDateCard"></div>
+  <div class="mb-6">
+    <p class="text-sm font-bold text-violet-600">
+      STEP 2 / STEP 3
+    </p>
+
+    <h1
+      id="eventTitle"
+      class="mt-2 text-3xl font-black"
+    ></h1>
+
+    <p class="mt-3 text-slate-500">
+      参加できる日時を選択してください。
+    </p>
+  </div>
+
+  <div class="rounded-3xl bg-white p-5 shadow-sm sm:p-7">
+
+    <label class="text-sm font-bold">
+      あなたの名前
+    </label>
+
+    <input
+      id="userName"
+      type="text"
+      placeholder="例：伊達政宗"
+      class="mt-2 w-full rounded-xl border px-4 py-3 outline-none focus:border-violet-500">
+
+    <div
+      id="scheduleOptions"
+      class="mt-7 space-y-4"></div>
+
+    <button
+      id="saveAnswerBtn"
+      class="mt-7 w-full rounded-xl bg-violet-600 px-5 py-4 font-bold text-white hover:bg-violet-700">
+      回答を保存してURLを作る
+    </button>
+  </div>
+
+  <div class="mt-6 rounded-3xl bg-white p-5 shadow-sm">
+
+    <h2 class="font-black">
+      📊 回答状況
+    </h2>
+
+    <div
+      id="answerSummary"
+      class="mt-4"></div>
+  </div>
+
+  <div
+    id="shareBox"
+    class="mt-6 hidden rounded-3xl border border-violet-200 bg-violet-50 p-5">
+
+    <h2 class="font-black text-violet-900">
+      🔗 新しい共有URL
+    </h2>
+
+    <p class="mt-2 text-sm leading-6 text-violet-800">
+      このURLを他の参加者に共有してください。
+    </p>
+
+    <div class="mt-4 flex gap-2">
+      <input
+        id="shareUrl"
+        readonly
+        class="min-w-0 flex-1 rounded-xl border bg-white px-3 py-3 text-sm">
+
+      <button
+        id="copyBtn"
+        class="rounded-xl bg-violet-600 px-4 py-3 font-bold text-white">
+        コピー
+      </button>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+/* データモデル
+
+   {
+     v: 1,
+     title: "...",
+     dates: [
+       {
+         id: "...",
+         date: "2026-08-25",
+         time: "19:00"
+       }
+     ],
+     answers: [
+       {
+         name: "伊達政宗",
+         values: {
+           dateId: "ok / maybe / no"
+         }
+       }
+     ]
+   } 
+*/
+
+
+let eventData = null;
+let currentAnswers = {};
+
+/* ID生成 */
+function createId() {
+
+  return Math.random()
+    .toString(36)
+    .substring(2, 10);
+}
+
+/* 日時入力欄追加 */
+function addDateInput(
+  date = "",
+  time = ""
+) {
+
+  const container =
+    document.getElementById("dateInputs");
+    
+  const row =
+    document.createElement("div");
+    
+  row.className =
+    "flex gap-2";
+    
+  row.innerHTML = `
+  
+    <input
+      type="date"
+      value="${date}"
+      class="date-value min-w-0 flex-1 rounded-xl border px-3 py-3">
+
+    <input
+      type="time"
+      value="${time}"
+      class="time-value w-32 rounded-xl border px-3 py-3">
+
+    <button
+      type="button"
+      class="remove-date rounded-xl border px-3 text-red-500">
+      ×
+    </button>
+
+  `;
+
+  row
+    .querySelector(".remove-date")
+    .addEventListener(
+      "click",
+      () => row.remove()
+    );
+
+  container.appendChild(row);
+}
+
+/* 作成 */
+function createEvent() {
+
+  const title =
+    document
+      .getElementById("eventName")
+      .value
+      .trim();
+
+  if (!title) {
+    alert("イベント名を入力してください。");
+    return;
+  }
+
+  const rows =
+    document.querySelectorAll(
+      "#dateInputs > div"
+    );
+
+  const dates = [];
+  rows.forEach(row => {
+
+    const date =
+      row
+        .querySelector(".date-value")
+        .value;
+
+    const time =
+      row
+        .querySelector(".time-value")
+        .value;
+
+    if (date && time) {
+      dates.push({
+        id: createId(),
+        date,
+        time
+      });
+    }
+  });
+
+  if (!dates.length) {
+    alert("候補日時を1つ以上入力してください。");
+    return;
+  }
+
+  eventData = {
+    v: 1,
+    title,
+    dates,
+    answers: []
+  };
+
+  updateUrl();
+  showEventScreen();
+}
+
+/*  URLエンコード */
+function encodeData(data) {
+
+  const json =
+    JSON.stringify(data);
+
+  const compressed =
+    LZString.compressToEncodedURIComponent(
+      json
+    );
+
+  return "v1_" + compressed;
+}
+
+
+/* URLデコード */
+function decodeData(value) {
+  try {
+
+    if (!value.startsWith("v1_")) {
+      return null;
+    }
+
+    const compressed =
+      value.substring(3);
+
+    const json =
+      LZString.decompressFromEncodedURIComponent(
+        compressed
+      );
+
+    if (!json) {
+      return null;
+    }
+
+    return JSON.parse(json);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+/* URL更新 */
+function updateUrl() {
+  const encoded =
+    encodeData(eventData);
+
+  const url =
+    location.origin +
+    location.pathname +
+    "#v1_" +
+    encoded.substring(3);
+
+  history.replaceState(
+    null,
+    "",
+    url
+  );
+
+  return url;
+}
+
+
+/* URLから読み込み */
+function loadFromUrl() {
+  const hash =
+    location.hash;
+
+  if (!hash || !hash.startsWith("#v1_")) {
+    showCreateScreen();
+    return;
+  }
+
+  const data =
+    decodeData(
+      hash.substring(1)
+    );
+
+  if (
+    !data ||
+    !data.title ||
+    !Array.isArray(data.dates)
+  ) {
+
+    showCreateScreen();
+    return;
+  }
+
+  eventData = data;
+  showEventScreen();
+}
+
+/* 作成画面 */
+function showCreateScreen(){
+
+  document
+    .getElementById("createScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("eventScreen")
+    .classList.add("hidden");
+}
+
+/* イベント画面 */
+function showEventScreen() {
+
+  document
+    .getElementById("createScreen")
+    .classList.add("hidden");
+
+  document
+    .getElementById("eventScreen")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("eventTitle")
+    .textContent =
+    eventData.title;
+
+  renderScheduleOptions();
+  renderSummary();
+  renderBestDate();
+}
+
+/* 選択肢描画 */
+function renderScheduleOptions() {
+
+  const container =
+    document.getElementById(
+      "scheduleOptions"
+    );
+
+  container.innerHTML = "";
+
+  eventData.dates.forEach(
+    date => {
+
+      const current =
+        currentAnswers[date.id] || "";
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "rounded-2xl border p-4";
+
+      row.innerHTML = `
+
+        <div class="font-bold">
+          ${formatDate(date.date)}
+        </div>
+
+        <div class="mt-1 text-sm text-slate-500">
+          ${date.time}
+        </div>
+
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <button
+            class="choice-btn ${
+              current === "ok"
+                ? "active-ok"
+                : ""
+            } rounded-xl border px-3 py-3 font-bold"
+            data-id="${date.id}"
+            data-value="ok">
+            ○
+            <span class="block text-xs">
+              参加
+            </span>
+          </button>
+
+          <button
+            class="choice-btn ${
+              current === "maybe"
+                ? "active-maybe"
+                : ""
+            } rounded-xl border px-3 py-3 font-bold"
+            data-id="${date.id}"
+            data-value="maybe">
+            △
+            <span class="block text-xs">
+              未定
+            </span>
+          </button>
+
+          <button
+            class="choice-btn ${
+              current === "no"
+                ? "active-no"
+                : ""
+            } rounded-xl border px-3 py-3 font-bold"
+            data-id="${date.id}"
+            data-value="no">
+            ×
+            <span class="block text-xs">
+              不参加
+            </span>
+          </button>
+        </div>
+      `;
+
+      row
+        .querySelectorAll(".choice-btn")
+        .forEach(button => {
+
+          button.addEventListener(
+            "click",
+            () => {
+
+              const id =
+                button.dataset.id;
+
+              const value =
+                button.dataset.value;
+
+              currentAnswers[id] =
+                value;
+
+              renderScheduleOptions();
+            }
+          );
+        });
+
+      container.appendChild(row);
+    }
+  );
+}
+
+/* 回答保存 */
+function saveAnswer() {
+
+  const name =
+    document
+      .getElementById("userName")
+      .value
+      .trim();
+
+  if (!name) {
+    alert("名前を入力してください。");
+    return;
+  }
+
+  const values =
+    {};
+
+  eventData.dates.forEach(date => {
+    values[date.id] =
+      currentAnswers[date.id] ||
+      "no";
+  });
+
+  /* 同じ名前の回答は上書き */
+  eventData.answers =
+    eventData.answers.filter(
+      answer =>
+        answer.name !== name
+    );
+
+  eventData.answers.push({
+    name,
+    values
+  });
+
+  const newUrl =
+    updateUrl();
+
+  document
+    .getElementById("shareBox")
+    .classList.remove("hidden");
+
+  document
+    .getElementById("shareUrl")
+    .value =
+    newUrl;
+
+  renderSummary();
+  renderBestDate();
+
+  alert(
+    "回答を保存しました。新しいURLが生成されました。"
+  );
+}
+
+
+/* ベストな日時 */
+function getBestDate() {
+  if (!eventData.answers.length) {
+    return null;
+  }
+
+  let best = null;
+  eventData.dates.forEach(date => {
+
+    let ok = 0;
+    let maybe = 0;
+
+    eventData.answers.forEach(answer => {
+      const value =
+        answer.values[date.id];
+
+      if (value === "ok") {
+        ok++;
+      }
+
+      if (value === "maybe") {
+        maybe++;
+      }
+    });
+
+    /* ○を最優先。同数なら△が多いほう */
+    const score =
+      ok * 100 + maybe;
+
+    if (
+      !best ||
+      score > best.score
+    ) {
+
+      best = {
+        date,
+        ok,
+        maybe,
+        score
+      };
+    }
+  });
+
+  return best;
+}
+
+/* ベスト日時表示 */
+function renderBestDate() {
+
+  const container =
+    document.getElementById(
+      "bestDateCard"
+    );
+
+  const best =
+    getBestDate();
+
+  if (!best) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+
+    <div class="mb-7 rounded-3xl bg-gradient-to-br from-violet-600 to-indigo-600 p-6 text-white shadow-lg">
+
+      <p class="text-sm font-bold opacity-80">
+        ⭐ 現在のベスト日時
+      </p>
+
+      <h2 class="mt-2 text-2xl font-black">
+        ${formatDate(best.date.date)}
+        ${best.date.time}
+      </h2>
+
+      <p class="mt-3 text-sm opacity-90">
+        ○ ${best.ok}人
+        ／
+        △ ${best.maybe}人
+      </p>
+    </div>
+
+  `;
+}
+
+/* 回答一覧 */
+function renderSummary() {
+
+  const container =
+    document.getElementById(
+      "answerSummary"
+    );
+
+  if (!eventData.answers.length) {
+    container.innerHTML = `
+      <p class="text-sm text-slate-500">
+        まだ回答はありません。
+      </p>
+    `;
+    return;
+  }
+
+  let html = "";
+
+  eventData.answers.forEach(
+    answer => {
+
+      html += `
+
+        <div class="border-b py-3 last:border-0">
+          <div class="font-bold">
+            ${escapeHtml(answer.name)}
+          </div>
+          
+          <div class="mt-2 flex flex-wrap gap-2">
+      `;
+
+      eventData.dates.forEach(
+        date => {
+
+          const value =
+            answer.values[date.id];
+
+          const label =
+            value === "ok"
+              ? "○"
+              : value === "maybe"
+              ? "△"
+              : "×";
+
+          const color =
+            value === "ok"
+              ? "bg-green-100 text-green-700"
+              : value === "maybe"
+              ? "bg-yellow-100 text-yellow-700"
+              : "bg-red-100 text-red-700";
+
+          html += `
+
+            <span class="rounded-lg ${color} px-2 py-1 text-xs font-bold">
+              ${formatDate(date.date)}
+              ${date.time}
+              ${label}
+            </span>
+          `;
+        }
+      );
+
+      html += `
+          </div>
+        </div>
+      `;
+    }
+  );
+
+
+  container.innerHTML =
+    html;
+}
+
+/* 日付フォーマット */
+function formatDate(dateString) {
+
+  const date =
+    new Date(
+      dateString + "T00:00:00"
+    );
+
+  const days =
+    [
+      "日",
+      "月",
+      "火",
+      "水",
+      "木",
+      "金",
+      "土"
+    ];
+
+  return `
+    ${date.getMonth() + 1}/
+    ${date.getDate()}
+    (${days[date.getDay()]})
+  `;
+}
+
+/* HTMLエスケープ */
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+/* コピー */
+async function copyUrl() {
+
+  const input =
+    document.getElementById(
+      "shareUrl"
+    );
+
+  try {
+    await navigator.clipboard.writeText(
+      input.value
+    );
+
+    document
+      .getElementById("copyBtn")
+      .textContent =
+      "コピーしました";
+
+    setTimeout(() => {
+
+      document
+        .getElementById("copyBtn")
+        .textContent =
+        "コピー";
+
+    }, 1500);
+  } catch {
+    input.select();
+    document.execCommand("copy");
+  }
+}
+
+/* イベント */
+document
+  .getElementById("addDateBtn")
+  .addEventListener(
+    "click",
+    () => addDateInput()
+  );
+
+document
+  .getElementById("createBtn")
+  .addEventListener(
+    "click",
+    createEvent
+  );
+
+document
+  .getElementById("saveAnswerBtn")
+  .addEventListener(
+    "click",
+    saveAnswer
+  );
+
+document
+  .getElementById("copyBtn")
+  .addEventListener(
+    "click",
+    copyUrl
+  );
+
+/* 初期状態 */
+addDateInput();
+
+addDateInput();
+
+loadFromUrl();
+
+</script>
+</body>
+</html>
