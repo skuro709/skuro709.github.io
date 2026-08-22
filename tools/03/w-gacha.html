@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>名言・ことわざ翻訳ガチャ</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    body {
+      font-family:
+        -apple-system, BlinkMacSystemFont,
+        "Hiragino Kaku Gothic ProN",
+        "Yu Gothic", YuGothic, Meiryo,
+        sans-serif;
+    }
+
+    .quote-font {
+      font-family:
+        Georgia,
+        "Times New Roman",
+        "Hiragino Mincho ProN",
+        "Yu Mincho",
+        serif;
+    }
+
+    .quote-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .quote-card::before,
+    .quote-card::after {
+      position: absolute;
+      color: #e0e7ff;
+      font-family: Georgia, serif;
+      font-size: 7rem;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .quote-card::before {
+      content: "“";
+      top: -1rem;
+      left: 1rem;
+    }
+
+    .quote-card::after {
+      content: "”";
+      right: 1rem;
+      bottom: -3rem;
+    }
+
+    .result-content {
+      animation: fadeIn .55s ease both;
+    }
+
+    .loading .result-content {
+      animation: slot .45s ease-in-out infinite alternate;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slot {
+      from {
+        opacity: .35;
+        transform: translateY(-5px);
+      }
+
+      to {
+        opacity: .8;
+        transform: translateY(5px);
+      }
+    }
+
+    .sparkle {
+      animation: sparkle 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes sparkle {
+      from {
+        opacity: .45;
+        transform: scale(.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1.05);
+      }
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: .65;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-slate-50 text-slate-800">
+
+<header class="border-b bg-white">
+  <div class="mx-auto max-w-4xl px-5 py-4">
+    <div class="flex items-center justify-between gap-4">
+      <a
+        href="/index.html"
+        class="font-bold text-slate-700">
+        ← HOME
+      </a>
+
+      <span class="text-sm font-bold text-indigo-600">
+        ✨ 名言ガチャ
+      </span>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-4xl px-5 py-8">
+  <section class="mb-8">
+  
+    <p class="text-sm font-bold text-indigo-600">
+      RANDOM QUOTE GACHA
+    </p>
+
+    <h1 class="mt-2 text-3xl font-black sm:text-4xl">
+      ランダム名言・ことわざ<br class="sm:hidden">
+      翻訳ガチャ
+    </h1>
+
+    <p class="mt-4 leading-7 text-slate-600">
+      ボタンを押すだけで、世界のどこかから名言やジョークが飛んできます。
+      今日はどんな言葉に出会うでしょう？
+    </p>
+  </section>
+
+  <!-- Quote Card -->
+  <section
+    id="quoteCard"
+    class="quote-card rounded-3xl bg-white p-7 shadow-sm sm:p-10">
+
+    <div class="relative z-10">
+      <div class="flex items-center justify-between gap-4">
+
+        <span
+          id="sourceBadge"
+          class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">
+          RANDOM
+        </span>
+
+        <span
+          id="sparkle"
+          class="sparkle text-xl"
+          aria-hidden="true">
+          ✦
+        </span>
+      </div>
+
+      <div
+        id="resultContent"
+        class="result-content mt-8">
+
+        <p
+          id="quoteJapanese"
+          class="quote-font text-center text-2xl font-bold leading-10 text-slate-800 sm:text-3xl">
+          ボタンを押して<br>
+          今日の言葉を引いてみよう。
+        </p>
+
+        <div class="my-8 h-px bg-slate-100"></div>
+        <p
+          id="quoteOriginal"
+          class="text-center text-sm leading-7 text-slate-500">
+          Your random quote will appear here.
+        </p>
+
+        <p
+          id="quoteAuthor"
+          class="mt-4 text-center text-sm font-bold text-indigo-600">
+          —
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gacha Button -->
+  <button
+    id="gachaButton"
+    type="button"
+    class="mt-6 w-full rounded-xl bg-indigo-600 px-5 py-4 font-bold text-white shadow-sm transition hover:bg-indigo-700 active:scale-[.99]">
+    ガチャを回す
+  </button>
+
+  <!-- Information -->
+  <section
+    class="mt-5 rounded-2xl bg-indigo-50 p-5 text-sm leading-6 text-indigo-900">
+    
+    <p class="font-bold">
+      💡 このガチャについて
+    </p>
+
+    <p class="mt-2">
+      名言は Quotable API、ジョークは Chuck Norris API から取得します。
+      取得した英語の文章は、APIキー不要の MyMemory Translation API を使って
+      日本語へ翻訳します。
+    </p>
+
+    <p class="mt-2">
+      翻訳APIが利用できない場合でも、名言そのものは表示できるようにしています。
+    </p>
+  </section>
+</main>
+
+<script>
+/* api */
+  const QUOTABLE_API =
+    "https://api.quotable.io/random";
+
+  const CHUCK_API =
+    "https://api.chucknorris.io/jokes/random";
+
+  /* MyMemory Translation API (翻訳) */
+  const MYMEMORY_API =
+    "https://api.mymemory.translated.net/get";
+
+  /* DOM */
+  const quoteCard =
+    document.getElementById("quoteCard");
+
+  const resultContent =
+    document.getElementById("resultContent");
+
+  const quoteJapanese =
+    document.getElementById("quoteJapanese");
+
+  const quoteOriginal =
+    document.getElementById("quoteOriginal");
+
+  const quoteAuthor =
+    document.getElementById("quoteAuthor");
+
+  const sourceBadge =
+    document.getElementById("sourceBadge");
+
+  const gachaButton =
+    document.getElementById("gachaButton");
+
+  const sparkle =
+    document.getElementById("sparkle");
+
+  /* Utility */
+  function sleep(ms) {
+    return new Promise(resolve => {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  /* JSON fetch */
+  async function fetchJson(url) {
+
+    const response =
+      await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json"
+        }
+      });
+
+    if (!response.ok) {
+      throw new Error(
+        `API request failed: ${response.status}`
+      );
+    }
+    return response.json();
+  }
+
+
+  /* 翻訳
+   MyMemory の q は最大500 bytesだから
+   長い文章は分割して翻訳する。
+   */
+
+  async function translateChunk(text) {
+  
+    const params =
+      new URLSearchParams({
+        q: text,
+        langpair: "en|ja"
+      });
+
+    const response =
+      await fetch(
+        `${MYMEMORY_API}?${params.toString()}`,
+        {
+          method: "GET",
+          headers: {
+            "Accept": "application/json"
+          }
+        }
+      );
+
+    if (!response.ok) {
+      throw new Error(
+        `Translation API failed: ${response.status}`
+      );
+    }
+
+    const data =
+      await response.json();
+
+    /* 翻訳結果 */
+    const translated =
+      data?.responseData?.translatedText;
+
+    if (!translated) {
+      throw new Error(
+        "Translation result was empty."
+      );
+    }
+    return translated;
+  }
+
+
+  /* 文章を短い単位に分割 */
+  function splitText(text) {
+
+    const sentences =
+      text.match(
+        /[^.!?。！？]+[.!?。！？]?/g
+      ) || [text];
+
+    const chunks = [];
+
+    let current = "";
+    for (const sentence of sentences) {
+
+      const candidate =
+        current + sentence;
+
+      /* URLエンコード前のUTF-8 byte数を確認 */
+      const byteLength =
+        new TextEncoder()
+          .encode(candidate)
+          .length;
+
+      /* 余裕を持って450byte */
+      if (
+        byteLength > 450 &&
+        current
+      ) {
+
+        chunks.push(
+          current.trim()
+        );
+
+        current =
+          sentence;
+
+      } else {
+
+        current =
+          candidate;
+      }
+    }
+
+    if (current.trim()) {
+
+      chunks.push(
+        current.trim()
+      );
+    }
+    return chunks;
+  }
+
+  /* 日本語に翻訳 */
+  async function translateToJapanese(text) {
+
+    if (
+      !text ||
+      typeof text !== "string"
+    ) {
+      return text;
+    }
+
+    const cleanText =
+      text.trim();
+
+    if (!cleanText) {
+      return text;
+    }
+
+    /* 日本語があるなら呼ばなぁぁい */
+    const japaneseCharacters =
+      (
+        cleanText.match(
+          /[\u3040-\u30ff\u3400-\u9fff]/g
+        ) || []
+      ).length;
+
+    const totalCharacters =
+      cleanText.length;
+
+    if (
+      totalCharacters > 0 &&
+      japaneseCharacters / totalCharacters > 0.3
+    ) {
+      return cleanText;
+    }
+
+    try {
+      const chunks =
+        splitText(cleanText);
+
+      const translatedChunks = [];
+
+      for (const chunk of chunks) {
+        const translated =
+          await translateChunk(chunk);
+
+        translatedChunks.push(
+          translated
+        );
+
+        /* 連続アクセスを抑える 
+        公開APIだからね♡
+        */
+        if (chunks.length > 1) {
+          await sleep(150);
+        }
+      }
+
+      return translatedChunks.join(" ");
+      
+    } catch (error) {
+
+      console.warn(
+        "Translation failed. Original text will be used.",
+        error
+      );
+
+/* 翻訳できなくても成功扱い */
+      return cleanText;
+    }
+  }
+
+  /* quote取得 */
+  async function getQuote() {
+
+    /* 1にquotable */
+    try {
+      const data =
+        await fetchJson(
+          QUOTABLE_API
+        );
+
+      const original =
+        data.content;
+
+      const japanese =
+        await translateToJapanese(
+          original
+        );
+        
+      return {
+        original: original,
+        japanese: japanese,
+
+        author:
+          data.author ||
+          "Unknown",
+
+        source:
+          "QUOTABLE"
+      };
+
+    } catch (quotableError) {
+
+      console.warn(
+        "Quotable API failed:",
+        quotableError
+      );
+    }
+
+    /* Quotable が失敗したら、
+        Chuck Norris APIへフォールバァック
+     */
+    const data =
+      await fetchJson(
+        CHUCK_API
+      );
+
+    const original =
+      data.value;
+
+    const japanese =
+      await translateToJapanese(
+        original
+      );
+
+    return {
+      original: original,
+      japanese: japanese,
+      author:
+        "Chuck Norris API",
+
+      source:
+        "JOKE"
+    };
+  }
+
+  /* Loading */
+  function setLoading(isLoading) {
+  
+    gachaButton.disabled =
+      isLoading;
+
+    quoteCard.classList.toggle(
+      "loading",
+      isLoading
+    );
+
+    sparkle.textContent =
+      isLoading
+        ? "🎰"
+        : "✦";
+
+    if (isLoading) {
+      quoteJapanese.textContent =
+        "言葉を探しています…";
+
+      quoteOriginal.textContent =
+        "Finding a quote...";
+
+      quoteAuthor.textContent =
+        "—";
+
+      sourceBadge.textContent =
+        "SEARCHING";
+    }
+  }
+
+  /* Render */
+  function renderQuote(quote) {
+/* 再アニメーション */
+
+    resultContent.classList.remove(
+      "result-content"
+    );
+
+    void resultContent.offsetWidth;
+    resultContent.classList.add(
+      "result-content"
+    );
+
+    quoteJapanese.textContent =
+      quote.japanese;
+
+    quoteOriginal.textContent =
+      quote.original;
+
+    quoteAuthor.textContent =
+      `— ${quote.author}`;
+
+    sourceBadge.textContent =
+      quote.source;
+  }
+
+  /* ガチャ */
+  async function runGacha() {
+    setLoading(true);
+
+    try {
+      /* 演出 */
+      await sleep(550);
+
+      const quote =
+        await getQuote();
+
+      renderQuote(
+        quote
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Gacha error:",
+        error
+      );
+
+      sourceBadge.textContent =
+        "ERROR";
+
+      quoteJapanese.textContent =
+        "言葉を取りに行けませんでした。";
+
+      quoteOriginal.textContent =
+        "外部APIに接続できませんでした。少し時間を置いて再度お試しください。";
+
+      quoteAuthor.textContent =
+        "— API Error";
+
+    } finally {
+
+      quoteCard.classList.remove(
+        "loading"
+      );
+
+      gachaButton.disabled =
+        false;
+
+      sparkle.textContent =
+        "✦";
+    }
+  }
+
+  /* event */
+  gachaButton.addEventListener(
+    "click",
+    runGacha
+  );
+
+</script>
+<!-- 悲しいことにquotableAPIが反応してくれない…。ジョークしか帰って来んやんけ！ﾊｯﾊｯﾊｯﾊｯﾊﾊﾊﾊｯﾊ -->
+</body>
+</html>
