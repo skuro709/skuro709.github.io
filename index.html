@@ -158,6 +158,21 @@
 
 <script>
 
+// 例：カードのアイコン部分を作る処理
+const iconElement = document.createElement('div');
+
+if (tool.icon.endsWith('.svg')) {
+  // パス形式の場合は <img> タグにする
+  const img = document.createElement('img');
+  img.src = tool.icon;
+  img.alt = tool.title;
+  img.width = 24;  // 必要に応じてサイズ調整
+  img.height = 24;
+  iconElement.appendChild(img);
+} else {
+  // 従来の絵文字などの場合
+  iconElement.textContent = tool.icon;
+}
 
 /* めぇもぉぉぉ…
 =========================   
